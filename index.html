@@ -313,7 +313,7 @@
   <!-- q2: gender -->
   <section id="scr-quiz" class="screen">
     <div class="qnum">question 2 of 2</div>
-    <h2 class="q">What gender are you?</h2>
+    <h2 class="q" id="quizQ">What gender are you?</h2>
     <p class="tiny hint" id="quizHint">pick A or B</p>
     <div class="opts">
       <div class="slot" id="slotA"><span class="ghostA">A</span></div>
@@ -437,6 +437,7 @@
   var card = $('#optA'), cardMini = $('#optAMini');
   var chip = $('#chip'), bubble = $('#bubble'), hint = $('#quizHint');
   var quizActive = false, defeated = false, attempts = 0;
+  var armed = false;   /* stays still until clicked (or cursor right on it) */
   var sx = 0, sy = 0, svx = 0, svy = 0;   // position + velocity (top-left)
   var mode = 'idle';                       // 'idle' | 'physics' | 'dash'
   var rafId = 0, lastT = 0;
@@ -469,8 +470,9 @@
 
   function startQuiz() {
     show('scr-quiz');
+    $('#quizQ').textContent = (userName ? userName + ', ' : '') + 'What gender are you?';
     hint.textContent = 'pick A or B';
-    defeated = false; attempts = 0;
+    defeated = false; attempts = 0; armed = false;
     tauntIdx = 0;
     lastCount = 0; lastVault = 0; lastDash = 0;
     card.classList.remove('defeated');
@@ -495,6 +497,15 @@
     var c = center();
     var dx = c.x - mouse.x, dy = c.y - mouse.y;
     var d = Math.hypot(dx, dy) || 1;
+    /* dormant: sits perfectly still until actually clicked or hovered dead-on */
+    if (!armed) {
+      if (mouse.on && d < 70) {
+        armed = true;
+        dashAwayFrom(mouse.x, mouse.y);
+        countAttempt();
+      }
+      return;
+    }
     var R = Math.max(150, Math.min(CW, CH) * 1.4 + 45);
     if (mouse.on && d < R) {
       var f = (R - d) / R;
@@ -609,15 +620,17 @@
     tauntAt('ok ok you win 😮‍💨');
   }
 
-  /* input: mouse = physics; touch = dash away + dodge the finger */
+  /* input: dormant until clicked; then mouse = physics, touch = dash + dodge */
   window.addEventListener('pointermove', function (e) {
     if (e.pointerType === 'mouse') {
       mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true;
     } else if (quizActive && !defeated && mode !== 'dash') {
       measure();
       var c = center();
-      if (Math.hypot(e.clientX - c.x, e.clientY - c.y) < 95 &&
+      var trig = armed ? 95 : 60;
+      if (Math.hypot(e.clientX - c.x, e.clientY - c.y) < trig &&
           performance.now() - lastDash > 420) {
+        armed = true;
         dashAwayFrom(e.clientX, e.clientY);
         countAttempt();
       }
@@ -627,6 +640,7 @@
   card.addEventListener('pointerdown', function (e) {
     if (!quizActive || defeated) return;
     e.preventDefault();
+    armed = true;
     measure();
     dashAwayFrom(e.clientX, e.clientY);
     countAttempt();
@@ -635,6 +649,7 @@
     if (!quizActive) return;
     if (defeated) { finish('straight'); return; }
     e.preventDefault();
+    armed = true;
     measure();
     dashAwayFrom(center().x, center().y);
     countAttempt();
@@ -642,6 +657,7 @@
   card.addEventListener('keydown', function (e) {
     if ((e.key === 'Enter' || e.key === ' ') && quizActive && !defeated) {
       e.preventDefault();
+      armed = true;
       measure();
       dashAwayFrom(center().x, center().y);
       countAttempt();
