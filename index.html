@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>the little quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2b2b3a;
+    --paper: #fdf9ef;
+    --sky: #b8dde6;
+    --butter: #ffd97d;
+    --mint: #b7e4c7;
+    --pink: #ffadad;
+    --blue: #9bd1ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Pixelify Sans", "Courier New", monospace;
+    background: var(--sky);
+    color: var(--ink);
+    overflow: hidden;
+    height: 100dvh;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+  .hidden { opacity: 0 !important; pointer-events: none !important; }
+
+  /* ---------- pixel scenery ---------- */
+  #scenery { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .cloud {
+    position: absolute;
+    background: rgba(255, 255, 255, .68);
+    image-rendering: pixelated;
+  }
+  .cloud::before, .cloud::after {
+    content: ""; position: absolute; background: inherit;
+  }
+  .cloud.c1 { width: 120px; height: 24px; top: 14%; animation: cloudDrift 70s linear infinite; }
+  .cloud.c2 { width: 90px;  height: 20px; top: 34%; animation: cloudDrift 95s linear infinite; animation-delay: -40s; }
+  .cloud.c3 { width: 150px; height: 26px; top: 58%; animation: cloudDrift 120s linear infinite; animation-delay: -70s; }
+  .cloud::before { width: 34px; height: 18px; top: -16px; left: 16px; }
+  .cloud::after  { width: 22px; height: 12px; top: -10px; right: 22px; }
+  @keyframes cloudDrift { from { left: -180px; } to { left: 100vw; } }
+
+  .sun {
+    position: absolute; top: 26px; right: 30px;
+    width: 44px; height: 44px;
+    background: #ffe08a;
+    box-shadow: 8px 0 0 #ffe08a, -8px 0 0 #ffe08a, 0 8px 0 #ffe08a, 0 -8px 0 #ffe08a;
+  }
+  #grass {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 34px;
+    background: #9ccf9f;
+    border-top: 4px solid #7db87f;
+  }
+  #grass::before {
+    content: ""; position: absolute; top: -12px; left: 0; right: 0; height: 8px;
+    background:
+      linear-gradient(90deg, #9ccf9f 0 12px, transparent 12px 40px) repeat-x;
+    background-size: 40px 8px;
+  }
+
+  /* ---------- screens ---------- */
+  .screen {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 24px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .screen.active { opacity: 1; pointer-events: auto; }
+
+  .badge {
+    font-size: 1rem;
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    padding: 5px 14px;
+    margin-bottom: 24px;
+  }
+  .big {
+    font-size: clamp(2.2rem, 9vw, 4.2rem);
+    line-height: 1.05; margin: 0 0 14px; font-weight: 700;
+    text-shadow: 4px 4px 0 rgba(43, 43, 58, .18);
+  }
+  .sub { font-size: clamp(1.05rem, 4vw, 1.4rem); margin: 0 0 34px; }
+  .tiny { color: #57606e; font-size: .95rem; margin-top: 18px; }
+
+  .qnum { font-size: 1rem; letter-spacing: .15em; text-transform: uppercase; color: #57606e; margin-bottom: 14px; }
+  .q {
+    font-size: clamp(1.6rem, 6.5vw, 2.4rem);
+    margin: 0 0 10px; font-weight: 700;
+    text-shadow: 3px 3px 0 rgba(43, 43, 58, .15);
+  }
+
+  /* ---------- blocky buttons & input ---------- */
+  .btn {
+    font: inherit; font-weight: 600;
+    border: 3px solid var(--ink); cursor: pointer;
+    padding: 12px 30px;
+    font-size: 1.15rem;
+    color: var(--ink);
+    background: var(--butter);
+    box-shadow: 4px 4px 0 var(--ink);
+    transition: translate .06s ease, box-shadow .06s ease;
+  }
+  .btn:hover { filter: brightness(1.04); }
+  .btn:active { translate: 3px 3px; box-shadow: 1px 1px 0 var(--ink); }
+  .btn.paper { background: var(--paper); }
+
+  #nameInput {
+    font: inherit; font-size: 1.15rem;
+    padding: 12px 16px;
+    width: min(280px, 56vw);
+    border: 3px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    outline: none;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+  #nameInput:focus { background: #fff; }
+  #nameInput.err { animation: errShake .35s; background: var(--pink); }
+  @keyframes errShake { 0%,100%{translate:0 0} 25%{translate:-6px 0} 50%{translate:6px 0} 75%{translate:-4px 0} }
+  .nameRow { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .warn { color: #a63d3d; }
+
+  /* ---------- quiz options ---------- */
+  #scr-quiz { justify-content: flex-start; padding-top: 11vh; }
+  .hint { min-height: 1.3em; }
+  .opts {
+    display: flex; gap: 16px;
+    width: min(660px, 94vw);
+    margin-top: 36px;
+    justify-content: center;
+  }
+  .slot, .opt {
+    width: min(280px, 42vw);
+    min-height: 140px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 6px;
+  }
+  .slot {
+    border: 3px dashed #6d8593;
+    opacity: .55;
+  }
+  .ghostA { font-size: 3rem; font-weight: 700; color: #6d8593; user-select: none; }
+  .opt { font: inherit; color: var(--ink); cursor: pointer; }
+  .tag {
+    background: var(--ink);
+    color: var(--paper);
+    font-size: .95rem; font-weight: 700;
+    padding: 3px 10px;
+  }
+  .optLabel { font-size: clamp(1.15rem, 4.5vw, 1.6rem); font-weight: 700; }
+  .mini { font-size: .9rem; color: #57606e; }
+
+  #optB {
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    position: relative;
+    overflow: hidden;
+    transition: translate .06s ease, box-shadow .06s ease;
+  }
+  #optB::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+    background: linear-gradient(90deg,
+      #ffadad 0 16.6%, #ffd97d 16.6% 33.2%,
+      #b7e4c7 33.2% 49.8%, #9bd1ff 49.8% 66.4%,
+      #c9b8ff 66.4% 83%, #ffb8d9 83% 100%);
+  }
+  #optB:hover { translate: 0 -2px; box-shadow: 4px 6px 0 var(--ink); }
+  #optB:active { translate: 3px 3px; box-shadow: 1px 1px 0 var(--ink); }
+
+  /* ---------- the runaway option A ---------- */
+  #optA {
+    position: fixed; left: 0; top: 0;
+    z-index: 50;
+    background: var(--butter);
+    border: 3px solid var(--ink);
+    box-shadow: 4px 4px 0 var(--ink);
+    will-change: transform;
+    touch-action: none;
+    user-select: none;
+  }
+  #optA:active { translate: 0 0; box-shadow: 4px 4px 0 var(--ink); }
+  #optA.defeated {
+    background: #dcd8ce;
+    filter: grayscale(.6);
+    animation: sadWob 2.2s ease-in-out infinite;
+  }
+  @keyframes sadWob { 0%,100% { rotate: 0deg; } 25% { rotate: 1.6deg; } 75% { rotate: -1.6deg; } }
+
+  .chip {
+    position: fixed; top: 12px; left: 50%;
+    translate: -50% 0;
+    z-index: 55;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 6px 16px;
+    font-size: 1rem;
+    transition: opacity .3s;
+    white-space: nowrap;
+  }
+
+  .bubble {
+    position: fixed; z-index: 60;
+    background: var(--paper); color: var(--ink);
+    font-weight: 600; font-size: 1.05rem;
+    padding: 8px 14px;
+    max-width: 78vw;
+    border: 3px solid var(--ink);
+    box-shadow: 3px 3px 0 var(--ink);
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  .bubble.pop { animation: bubblePop .2s steps(3); }
+  @keyframes bubblePop { from { scale: .4; } to { scale: 1; } }
+
+  body.shake #scr-quiz .opts, body.shake #scr-quiz .q { animation: shakeIt .25s; }
+  @keyframes shakeIt { 0%,100%{translate:0 0} 25%{translate:-3px 2px} 50%{translate:3px -2px} 75%{translate:-2px 0} }
+
+  /* ---------- result / certificate ---------- */
+  .cert {
+    width: min(430px, 92vw);
+    background: var(--paper);
+    border: 3px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    padding: 30px 24px 26px;
+  }
+  .cert::before {
+    content: ""; display: block; height: 8px; margin: -30px -24px 26px;
+    background: linear-gradient(90deg,
+      #ffadad 0 16.6%, #ffd97d 16.6% 33.2%,
+      #b7e4c7 33.2% 49.8%, #9bd1ff 49.8% 66.4%,
+      #c9b8ff 66.4% 83%, #ffb8d9 83% 100%);
+  }
+  .seal { font-size: 3.2rem; }
+  .certTitle { letter-spacing: .2em; font-size: .95rem; color: #57606e; text-transform: uppercase; margin: 12px 0 14px; }
+  .certName {
+    font-size: clamp(1.9rem, 8vw, 2.7rem);
+    font-weight: 700;
+    color: #35507c;
+    word-break: break-word;
+  }
+  .certVerdict { font-size: 1.2rem; margin: 12px 0 6px; font-weight: 600; }
+  .certStats { color: #7c6a2f; font-size: 1rem; margin-bottom: 4px; }
+  .certDate { color: #57606e; font-size: .9rem; margin-bottom: 24px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+  #toast {
+    position: fixed; bottom: 46px; left: 50%;
+    translate: -50% 0;
+    z-index: 95;
+    background: var(--ink); color: var(--paper);
+    border: 3px solid var(--ink);
+    padding: 8px 18px;
+    font-size: 1rem;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, translate .25s;
+  }
+  #toast.show { opacity: 1; translate: -50% -6px; }
+
+  #confetti { position: fixed; inset: 0; z-index: 80; pointer-events: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cloud, #optA.defeated { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="scenery">
+    <div class="sun"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div id="grass"></div>
+  </div>
+
+  <div id="chip" class="chip hidden">escapes: <b>0</b></div>
+  <div id="bubble" class="bubble hidden"></div>
+
+  <!-- welcome -->
+  <section id="scr-welcome" class="screen active">
+    <div class="badge">a small quiz</div>
+    <h1 class="big">The Little<br>Quiz</h1>
+    <p class="sub">two questions. one of them is shy.</p>
+    <button class="btn" id="playBtn">start</button>
+    <p class="tiny">send the link to a friend</p>
+  </section>
+
+  <!-- q1: name -->
+  <section id="scr-name" class="screen">
+    <div class="qnum">question 1 of 2</div>
+    <h2 class="q">What is your name?</h2>
+    <div class="nameRow">
+      <input id="nameInput" maxlength="20" placeholder="your name" autocomplete="off" spellcheck="false">
+      <button class="btn" id="nameBtn">ok</button>
+    </div>
+    <p class="tiny warn hidden" id="nameWarn">you need a name, silly</p>
+  </section>
+
+  <!-- q2: gender -->
+  <section id="scr-quiz" class="screen">
+    <div class="qnum">question 2 of 2</div>
+    <h2 class="q">What gender are you?</h2>
+    <p class="tiny hint" id="quizHint">pick A or B</p>
+    <div class="opts">
+      <div class="slot" id="slotA"><span class="ghostA">A</span></div>
+      <button class="opt" id="optB">
+        <span class="tag">B</span>
+        <span class="optLabel">Lesbian/Gay</span>
+        <span class="mini">🏳️‍🌈 pick me, I'm calm</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- the runaway option A (roams the whole page) -->
+  <button class="opt" id="optA" hidden>
+    <span class="tag">A</span>
+    <span class="optLabel">Straight</span>
+    <span class="mini" id="optAMini">🏃 good luck</span>
+  </button>
+
+  <!-- result -->
+  <section id="scr-result" class="screen">
+    <div class="cert">
+      <div class="seal" id="certSeal">🏳️‍🌈</div>
+      <div class="certTitle" id="certTitle">Official-ish Certificate</div>
+      <div class="certName" id="certName">?</div>
+      <div class="certVerdict" id="certVerdict"></div>
+      <div class="certStats" id="certStats"></div>
+      <div class="certDate" id="certDate"></div>
+      <div class="row">
+        <button class="btn" id="shareBtn">share</button>
+        <button class="btn paper" id="againBtn">new player</button>
+      </div>
+    </div>
+    <p class="tiny">screenshot it. it's basically legally binding*</p>
+  </section>
+
+  <div id="toast"></div>
+  <canvas id="confetti"></canvas>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+  var rnd = function (a, b) { return a + Math.random() * (b - a); };
+
+  /* ============ screens & toast ============ */
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (s) {
+      s.classList.toggle('active', s.id === id);
+    });
+  }
+  var toastT = 0;
+  function toast(t) {
+    var el = $('#toast');
+    el.textContent = t;
+    el.classList.add('show');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { el.classList.remove('show'); }, 1900);
+  }
+
+  /* ============ pixel confetti ============ */
+  var cvs = $('#confetti'), c2 = cvs.getContext('2d');
+  var parts = [], cRaf = 0;
+  function sizeCvs() {
+    var dpr = window.devicePixelRatio || 1;
+    cvs.width = innerWidth * dpr; cvs.height = innerHeight * dpr;
+    c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  sizeCvs();
+  function burst(n) {
+    var colors = ['#ffd97d', '#ffadad', '#9bd1ff', '#b7e4c7', '#e3c8ff', '#fdf9ef'];
+    for (var i = 0; i < n; i++) {
+      parts.push({
+        x: rnd(0, innerWidth), y: rnd(-innerHeight * .3, innerHeight * .1),
+        vx: rnd(-1.4, 1.4), vy: rnd(1, 3),
+        w: rnd(6, 11), h: rnd(6, 11),
+        a: rnd(0, 6.28), va: rnd(-.15, .15),
+        c: colors[i % colors.length], life: rnd(260, 440)
+      });
+    }
+    if (!cRaf) cRaf = requestAnimationFrame(stepCvs);
+  }
+  function stepCvs() {
+    c2.clearRect(0, 0, innerWidth, innerHeight);
+    parts = parts.filter(function (p) { return p.life > 0 && p.y < innerHeight + 40; });
+    parts.forEach(function (p) {
+      p.x += p.vx; p.y += p.vy; p.vy += .03; p.a += p.va; p.life--;
+      c2.save();
+      c2.translate(p.x, p.y); c2.rotate(p.a);
+      c2.globalAlpha = clamp(p.life / 80, 0, 1);
+      c2.fillStyle = p.c;
+      c2.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      c2.restore();
+    });
+    if (parts.length) cRaf = requestAnimationFrame(stepCvs);
+    else { cRaf = 0; c2.clearRect(0, 0, innerWidth, innerHeight); }
+  }
+
+  /* ============ q1: name ============ */
+  var userName = '';
+  $('#playBtn').addEventListener('click', function () {
+    show('scr-name');
+    setTimeout(function () { $('#nameInput').focus(); }, 350);
+  });
+  function submitName() {
+    var v = $('#nameInput').value.trim().replace(/[<>]/g, '');
+    if (!v) {
+      $('#nameWarn').classList.remove('hidden');
+      $('#nameInput').classList.add('err');
+      setTimeout(function () { $('#nameInput').classList.remove('err'); }, 450);
+      return;
+    }
+    userName = v.slice(0, 20);
+    $('#nameWarn').classList.add('hidden');
+    startQuiz();
+  }
+  $('#nameBtn').addEventListener('click', submitName);
+  $('#nameInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') submitName(); });
+
+  /* ============ q2: the runaway button ============ */
+  var card = $('#optA'), cardMini = $('#optAMini');
+  var chip = $('#chip'), bubble = $('#bubble'), hint = $('#quizHint');
+  var quizActive = false, defeated = false, attempts = 0;
+  var sx = 0, sy = 0, svx = 0, svy = 0;   // position + velocity (top-left)
+  var mode = 'idle';                       // 'idle' | 'physics' | 'dash'
+  var rafId = 0, lastT = 0;
+  var lastCount = 0, lastVault = 0, lastDash = 0, lastTaunt = 0, tauntIdx = 0, bubbleT = 0;
+  var mouse = { x: -9999, y: -9999, on: false };
+  var CW = 150, CH = 110;
+  var PAD = 10, TOPPAD = 64, BOTPAD = 44; /* keep above the grass */
+
+  var taunts = [
+    'nope', 'too slow!', 'not today', 'nice try', 'almost… no',
+    'lol', 'beep— just kidding, I ran', 'why bother', 'I do this all day',
+    'that was close!', 'try option B 🌈', "I'm just a button", 'my cardio is unreal',
+    'you again?', 'still here?'
+  ];
+  function pickTaunt() { return taunts[tauntIdx++ % taunts.length]; }
+
+  function measure() { CW = card.offsetWidth || 150; CH = card.offsetHeight || 110; }
+  function apply(scaleX, scaleY) {
+    card.style.transform = 'translate3d(' + sx + 'px,' + sy + 'px,0) rotate(' +
+      clamp(svx * .35, -9, 9) + 'deg) scale(' + (scaleX || 1) + ',' + (scaleY || 1) + ')';
+  }
+  function center() { return { x: sx + CW / 2, y: sy + CH / 2 }; }
+  function boundX(x) { return clamp(x, PAD, Math.max(PAD, innerWidth - CW - PAD)); }
+  function boundY(y) { return clamp(y, TOPPAD, Math.max(TOPPAD, innerHeight - CH - BOTPAD)); }
+
+  function resetChip() {
+    chip.innerHTML = 'escapes: <b>0</b>';
+    chip.classList.add('hidden');
+  }
+
+  function startQuiz() {
+    show('scr-quiz');
+    hint.textContent = 'pick A or B';
+    defeated = false; attempts = 0;
+    tauntIdx = 0;
+    lastCount = 0; lastVault = 0; lastDash = 0;
+    card.classList.remove('defeated');
+    cardMini.textContent = '🏃 good luck';
+    resetChip();
+    card.hidden = false;
+    var r = $('#slotA').getBoundingClientRect();
+    card.style.width = r.width + 'px';
+    measure();
+    sx = r.left; sy = r.top; svx = 0; svy = 0;
+    mode = 'physics'; quizActive = true;
+    apply();
+    lastT = performance.now();
+    if (!rafId) rafId = requestAnimationFrame(loop);
+  }
+
+  function loop(now) {
+    rafId = requestAnimationFrame(loop);
+    if (!quizActive || defeated || mode !== 'physics') { lastT = now; return; }
+    var dt = clamp((now - lastT) / 16.667, .25, 2.5); lastT = now;
+    measure();
+    var c = center();
+    var dx = c.x - mouse.x, dy = c.y - mouse.y;
+    var d = Math.hypot(dx, dy) || 1;
+    var R = Math.max(150, Math.min(CW, CH) * 1.4 + 45);
+    if (mouse.on && d < R) {
+      var f = (R - d) / R;
+      svx += (dx / d) * f * 7 * dt;
+      svy += (dy / d) * f * 7 * dt;
+      countAttempt();
+      if (d < R * .45 && now - lastVault > 2200) vault(c);
+    }
+    var fr = Math.pow(.86, dt);
+    svx *= fr; svy *= fr;
+    sx += svx * dt; sy += svy * dt;
+    if (sx < PAD) { sx = PAD; svx *= -.55; }
+    if (sx > innerWidth - CW - PAD) { sx = innerWidth - CW - PAD; svx *= -.55; }
+    if (sy < TOPPAD) { sy = TOPPAD; svy *= -.55; }
+    if (sy > innerHeight - CH - BOTPAD) { sy = innerHeight - CH - BOTPAD; svy *= -.55; }
+    apply();
+  }
+
+  function countAttempt() {
+    var now = performance.now();
+    if (now - lastCount < 1300) return;
+    lastCount = now;
+    attempts++;
+    var b = chip.querySelector('b');
+    if (b) b.textContent = attempts;
+    chip.classList.remove('hidden');
+    shakeScreen();
+    if (attempts >= 15) { giveUp(); return; }
+    if (now - lastTaunt > 900) { tauntAt(pickTaunt()); lastTaunt = now; }
+    if (attempts === 3) hint.textContent = 'the button is a little shy 💧';
+    if (attempts === 7) hint.textContent = "it really doesn't want to be picked";
+    if (attempts === 11) hint.textContent = 'you will lose this race 🏃';
+    if (attempts === 14) hint.textContent = 'so close. just kidding.';
+  }
+
+  function shakeScreen() {
+    document.body.classList.remove('shake');
+    void document.body.offsetWidth;
+    document.body.classList.add('shake');
+    setTimeout(function () { document.body.classList.remove('shake'); }, 300);
+  }
+
+  function tauntAt(text) {
+    bubble.textContent = text;
+    bubble.classList.remove('hidden');
+    var c = center();
+    var bw = bubble.offsetWidth || 120;
+    var bx = clamp(c.x - bw / 2, 8, Math.max(8, innerWidth - bw - 8));
+    var by = c.y - CH / 2 - 46;
+    if (by < 58) by = c.y + CH / 2 + 10;
+    bubble.style.left = bx + 'px';
+    bubble.style.top = by + 'px';
+    bubble.classList.remove('pop');
+    void bubble.offsetWidth;
+    bubble.classList.add('pop');
+    clearTimeout(bubbleT);
+    bubbleT = setTimeout(function () { bubble.classList.add('hidden'); }, 1200);
+  }
+
+  /* smooth dash (never teleports): a quick run with a little hop */
+  function dashAwayFrom(px, py) {
+    var c = center();
+    var dx = c.x - px, dy = c.y - py, d = Math.hypot(dx, dy);
+    if (d < 1) { dx = rnd(-1, 1); dy = rnd(-1, 1); d = Math.hypot(dx, dy) || 1; }
+    var dist = clamp(Math.min(innerWidth, innerHeight) * .55, 190, 480);
+    var tx = boundX(c.x + (dx / d) * dist + rnd(-70, 70) - CW / 2);
+    var ty = boundY(c.y + (dy / d) * dist + rnd(-60, 60) - CH / 2);
+    dashTo(tx, ty, rnd(480, 640));
+  }
+  function dashTo(tx, ty, dur) {
+    mode = 'dash'; lastDash = performance.now();
+    var fx = sx, fy = sy, t0 = performance.now();
+    (function step() {
+      if (!quizActive) return;
+      var k = clamp((performance.now() - t0) / dur, 0, 1);
+      var e = 1 - Math.pow(1 - k, 3);
+      sx = fx + (tx - fx) * e;
+      sy = fy + (ty - fy) * e;
+      var hop = Math.sin(Math.PI * k);
+      apply(1 + .1 * hop, 1 - .1 * hop);
+      if (k < 1) requestAnimationFrame(step);
+      else { svx = 0; svy = 0; apply(); if (!defeated) mode = 'physics'; }
+    })();
+  }
+  /* cornered? hop over the cursor to the farthest corner (still an animated run) */
+  function vault(c) {
+    lastVault = performance.now();
+    var pts = [
+      [PAD, TOPPAD],
+      [innerWidth - CW - PAD, TOPPAD],
+      [PAD, innerHeight - CH - BOTPAD],
+      [innerWidth - CW - PAD, innerHeight - CH - BOTPAD],
+      [innerWidth / 2 - CW / 2, TOPPAD + 6]
+    ];
+    var best = pts[0], bd = -1;
+    pts.forEach(function (p) {
+      var d = Math.hypot(p[0] + CW / 2 - mouse.x, p[1] + CH / 2 - mouse.y);
+      if (d > bd) { bd = d; best = p; }
+    });
+    tauntAt('🦘 hop!');
+    dashTo(best[0], best[1], 340);
+  }
+
+  function giveUp() {
+    defeated = true;
+    mode = 'physics';
+    card.classList.add('defeated');
+    cardMini.textContent = 'fine. you win.';
+    hint.textContent = '…it gave up. NOW you can click it';
+    chip.innerHTML = 'gave up after <b>15</b> escapes';
+    chip.classList.remove('hidden');
+    tauntAt('ok ok you win 😮‍💨');
+  }
+
+  /* input: mouse = physics; touch = dash away + dodge the finger */
+  window.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'mouse') {
+      mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true;
+    } else if (quizActive && !defeated && mode !== 'dash') {
+      measure();
+      var c = center();
+      if (Math.hypot(e.clientX - c.x, e.clientY - c.y) < 95 &&
+          performance.now() - lastDash > 420) {
+        dashAwayFrom(e.clientX, e.clientY);
+        countAttempt();
+      }
+    }
+  }, { passive: true });
+
+  card.addEventListener('pointerdown', function (e) {
+    if (!quizActive || defeated) return;
+    e.preventDefault();
+    measure();
+    dashAwayFrom(e.clientX, e.clientY);
+    countAttempt();
+  });
+  card.addEventListener('click', function (e) {
+    if (!quizActive) return;
+    if (defeated) { finish('straight'); return; }
+    e.preventDefault();
+    measure();
+    dashAwayFrom(center().x, center().y);
+    countAttempt();
+  });
+  card.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && quizActive && !defeated) {
+      e.preventDefault();
+      measure();
+      dashAwayFrom(center().x, center().y);
+      countAttempt();
+    }
+  });
+
+  $('#optB').addEventListener('click', function () {
+    if (quizActive) finish('rainbow');
+  });
+
+  window.addEventListener('resize', function () {
+    sizeCvs();
+    measure();
+    sx = boundX(sx); sy = boundY(sy);
+    apply();
+  });
+
+  /* ============ result ============ */
+  function finish(kind) {
+    quizActive = false;
+    card.hidden = true;
+    bubble.classList.add('hidden');
+    var date = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    if (kind === 'rainbow') {
+      $('#certSeal').textContent = '🏳️‍🌈';
+      $('#certTitle').textContent = 'Official-ish Certificate';
+      $('#certName').textContent = userName;
+      $('#certVerdict').textContent = 'is officially Lesbian/Gay 🌈';
+      $('#certStats').textContent = 'the Straight button escaped ' + attempts +
+        ' time' + (attempts === 1 ? '' : 's');
+      burst(220);
+    } else {
+      $('#certSeal').textContent = '🏆';
+      $('#certTitle').textContent = 'Persistence Award';
+      $('#certName').textContent = userName;
+      $('#certVerdict').textContent = 'is technically Straight… we guess';
+      $('#certStats').textContent = 'caught the button after ' + attempts + ' escapes';
+      burst(140);
+    }
+    $('#certDate').textContent = 'awarded ' + date;
+    show('scr-result');
+  }
+
+  $('#shareBtn').addEventListener('click', async function () {
+    var text = 'I played the little quiz and the Straight button escaped me ' +
+      attempts + ' times 😅 Can you catch it? ' + location.href;
+    try {
+      if (navigator.share) { await navigator.share({ text: text }); }
+      else {
+        await navigator.clipboard.writeText(text);
+        toast('copied! send it to a friend');
+      }
+    } catch (e) { /* user cancelled */ }
+  });
+
+  $('#againBtn').addEventListener('click', function () {
+    $('#nameInput').value = '';
+    show('scr-name');
+    setTimeout(function () { $('#nameInput').focus(); }, 350);
+  });
+})();
+</script>
+</body>
+</html>
